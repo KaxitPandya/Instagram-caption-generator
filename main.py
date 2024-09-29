@@ -39,11 +39,11 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Function to select the appropriate model based on user's choice
-def llm_invoke(option, api_key=api_key):
+def llm_invoke(option, api_key='AIzaSyAAzlvmMFqDSmQa-sKfhbE5XRnHk7YAO1Q'):
     if option == "Explain Scenario using text to get the caption":
-        llm = ChatGoogleGenerativeAI(model='gemini-1.5-pro', temperature=0, max_output_tokens=None, api_key=api_key)
+        llm = ChatGoogleGenerativeAI(model='gemini-1.5-pro', temperature=0, max_output_tokens=None, api_key='AIzaSyAAzlvmMFqDSmQa-sKfhbE5XRnHk7YAO1Q')
     else:
-        llm = ChatGoogleGenerativeAI(model='gemini-1.5-flash', api_key=api_key)
+        llm = ChatGoogleGenerativeAI(model='gemini-1.5-flash', api_key='AIzaSyAAzlvmMFqDSmQa-sKfhbE5XRnHk7YAO1Q')
     return llm
 
 # Function to create prompt for the selected model
