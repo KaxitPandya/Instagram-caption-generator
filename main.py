@@ -39,11 +39,11 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Function to select the appropriate model based on user's choice
-def llm_invoke(option, api_key='AIzaSyAAzlvmMFqDSmQa-sKfhbE5XRnHk7YAO1Q'):
+def llm_invoke(option, api_key=api_key):
     if option == "Explain Scenario using text to get the caption":
-        llm = ChatGoogleGenerativeAI(model='gemini-1.5-pro', temperature=0, max_output_tokens=None, api_key='AIzaSyAAzlvmMFqDSmQa-sKfhbE5XRnHk7YAO1Q')
+        llm = ChatGoogleGenerativeAI(model='gemini-1.5-pro', temperature=0, max_output_tokens=None, api_key=api_key)
     else:
-        llm = ChatGoogleGenerativeAI(model='gemini-1.5-flash', api_key='AIzaSyAAzlvmMFqDSmQa-sKfhbE5XRnHk7YAO1Q')
+        llm = ChatGoogleGenerativeAI(model='gemini-1.5-flash', api_key=api_key)
     return llm
 
 # Function to create prompt for the selected model
@@ -80,7 +80,7 @@ st.markdown('<div class="title">Instagram Caption Generator</div>', unsafe_allow
 # add your Google API key in the secrets.toml file as:
 # GOOGLE_API_KEY = 'your_api_key'
 # this key will be used when deploying your Streamlit app.
-api_key = st.secrets["AIzaSyAAzlvmMFqDSmQa-sKfhbE5XRnHk7YAO1Q"]
+api_key = st.secrets["GOOGLE_API_KEY"]
 lang = st.selectbox("Select Language:", ['english(default)', 'French'], index=None)
 option = st.radio("Choose input method: ", ['Explain Scenario using text to get the caption', 'Upload image to get the caption'], index=None)
 
@@ -127,4 +127,3 @@ if lang and option:
         placeholder.empty()
         st.query_params.clear()
         st.rerun()
-
