@@ -4,10 +4,12 @@ from langchain.prompts import PromptTemplate
 from langchain.schema import HumanMessage
 import time
 import base64
+
+# To run the app locally, store the GOOGLE_API_KEY in your .env file, and comment out the following line:
+# api_key = st.secrets["GOOGLE_API_KEY"]
+# Additionally, uncomment the following lines to load the API key from the .env file:
 # import os
 # from dotenv import load_dotenv, find_dotenv
-
-# # Load environment variables
 # load_dotenv(find_dotenv(), override=True)
 
 # Custom CSS
@@ -15,7 +17,7 @@ st.markdown("""
     <style>
     .title {
         font-size: 2.5em;
-        color: black;
+        color: #black;
         text-align: center;
         font-weight: bold;
         margin-bottom: 10px;
@@ -36,16 +38,35 @@ st.markdown("""
         color: #4B0082;
         margin-top: 20px;
     }
+    .footer {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        background-color: #f1f1f1;
+        color: black;
+        text-align: center;
+        padding: 10px 0;
+        font-size: 0.9em;
+        border-top: 1px solid #ddd;
+    }
+
 """, unsafe_allow_html=True)
+
+st.markdown('<div class="title">Instagram Caption Generator</div>', unsafe_allow_html=True)
+
 
 # add your Google API key in the secrets.toml file as:
 # GOOGLE_API_KEY = 'your_api_key'
 # this key will be used when deploying your Streamlit app.
 api_key = st.secrets["GOOGLE_API_KEY"]
+
 lang = st.selectbox("Select Language:", ['english(default)', 'French'], index=None)
+
 option = st.radio("Choose input method: ", ['Explain Scenario using text to get the caption', 'Upload image to get the caption'], index=None)
 
-# Function to select the appropriate model based on user's choice
+
+# select the appropriate model based on the user's choice in the 'option' input.
 def llm_invoke(option, api_key=api_key):
     if option == "Explain Scenario using text to get the caption":
         llm = ChatGoogleGenerativeAI(model='gemini-1.5-pro', temperature=0, max_output_tokens=None, api_key=api_key)
@@ -53,36 +74,59 @@ def llm_invoke(option, api_key=api_key):
         llm = ChatGoogleGenerativeAI(model='gemini-1.5-flash', api_key=api_key)
     return llm
 
-# Function to create prompt for the selected model
+
+# function to create prompt for selected model
 def generate_message(llm, totalCaptions, language, captionTone, captionLength):
     if llm.dict()['model'].split('/')[1] == 'gemini-1.5-pro':
-        scene = st.text_input("Explain the scenario for which you want the caption:")
+        # prompt the user for text input if the 'option' selected is 'Explain Scenario using text'.
+        scene = st.text_input("Explain the scenario for which you want the caption: ")
         if scene:
             template = PromptTemplate(
                 input_variables=["language", "totalCaptions", "scenario", "captionTone", "captionLength"],
                 template="I want {totalCaptions} alternative caption(s) for the following scenario: \"{scenario}\" in {language} language, and the tone should be {captionTone} and the caption length should be Instagram {captionLength} size"
-            )
+                )
+                
+            # format the prompt
             formatted_prompt = template.format(
                 totalCaptions=captions,
                 scenario=scene,
                 language=lang,
                 captionTone=tone,
                 captionLength=length
-            )
-            return formatted_prompt
+                )
+            
+            prompt = [
+                (
+                    'system',
+                    'You are a helpful assitant that helps people generate their instagram story and post captions'
+                    ),
+                (
+                    'human', formatted_prompt
+                )
+                ]
+            return prompt
         else:
-            st.warning('🚨Please explain the scenario first...')
+            if not scene:
+                st.warning('🚨Please explain the scenario first...')
     else:
+        # prompt the user to upload an image if the 'option' selected is 'Upload image to get the caption'.
         uploaded_file = st.file_uploader("Upload an image:", type=['jpg', 'jpeg', 'png'])
-        if uploaded_file:
+        if uploaded_file is not None:
             img_data = uploaded_file.read()
             image_data = base64.b64encode(img_data).decode('utf-8')
-            text = f'You are a helpful assistant that helps people generate their Instagram story and post captions. I want {totalCaptions} alternative caption(s) for the following image in {language} language, and the tone should be {captionTone} and the caption length should be Instagram {captionLength} size'
-            prompt = HumanMessage(content=[{'type': 'text', 'text': text}, {'type': 'image_url', 'image_url': {'url': f"data:image/jpeg;base64,{image_data}"} }])
+            
+            # format the prompt
+            text = f'You are a helpful assitant that helps people generate their instagram story and post captions. I want {totalCaptions} alternative caption(s) for the following image in {language} language, and the tone should be {captionTone} and the caption length should be Instagram {captionLength} size'
+            prompt = HumanMessage(
+                content=[
+                    {'type': 'text', 'text': text},
+                    {'type': 'image_url', 'image_url': {'url': f"data:image/jpeg;base64,{image_data}"}}
+                ]
+                )
             return prompt
+        else:
+            st.warning('🚨Please upload an image.....')
 
-
-st.markdown('<div class="title">Instagram Caption Generator</div>', unsafe_allow_html=True)
 
 if lang and option:
     llm = llm_invoke(option)
@@ -126,3 +170,5 @@ if lang and option:
         placeholder.empty()
         st.query_params.clear()
         st.rerun()
+       
+st.markdown('<div class="footer">© 2024 <a href="https://github.com/Vrajeshbrahmbhatt06">vrajesh B </a>. All rights reserved.</div>', unsafe_allow_html=True)
