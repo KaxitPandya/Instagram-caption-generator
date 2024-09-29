@@ -59,7 +59,7 @@ st.markdown('<div class="title">Instagram Caption Generator</div>', unsafe_allow
 # add your Google API key in the secrets.toml file as:
 # GOOGLE_API_KEY = 'your_api_key'
 # this key will be used when deploying your Streamlit app.
-api_key = st.secrets["GOOGLE_API_KEY"]
+api_key = st.info["GOOGLE_API_KEY"]
 
 lang = st.selectbox("Select Language:", ['english(default)', 'French'], index=None)
 
