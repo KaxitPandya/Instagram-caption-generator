@@ -5,9 +5,7 @@ from langchain.schema import HumanMessage
 import time
 import base64
 
-# To run the app locally, store the GOOGLE_API_KEY in your .env file, and comment out the following line:
 # api_key = st.secrets["GOOGLE_API_KEY"]
-# Additionally, uncomment the following lines to load the API key from the .env file:
 # import os
 # from dotenv import load_dotenv, find_dotenv
 # load_dotenv(find_dotenv(), override=True)
