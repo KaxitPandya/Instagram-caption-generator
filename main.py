@@ -5,10 +5,13 @@ from langchain.schema import HumanMessage
 import time
 import base64
 
+# To run the app locally, store the GOOGLE_API_KEY in your .env file, and comment out the following line:
 # api_key = st.secrets["GOOGLE_API_KEY"]
+# Additionally, uncomment the following lines to load the API key from the .env file:
 # import os
 # from dotenv import load_dotenv, find_dotenv
 # load_dotenv(find_dotenv(), override=True)
+
 
 # Custom CSS
 st.markdown("""
@@ -53,10 +56,6 @@ st.markdown("""
 
 st.markdown('<div class="title">Instagram Caption Generator</div>', unsafe_allow_html=True)
 
-
-# add your Google API key in the secrets.toml file as:
-# GOOGLE_API_KEY = 'your_api_key'
-# this key will be used when deploying your Streamlit app.
 api_key = st.secrets["GOOGLE_API_KEY"]
 
 lang = st.selectbox("Select Language:", ['english(default)', 'French'], index=None)
