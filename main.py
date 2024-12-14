@@ -167,5 +167,3 @@ if lang and option:
         placeholder.empty()
         st.query_params.clear()
         st.rerun()
-       
-st.markdown('<div class="footer">© 2024 <a href="https://github.com/Vrajeshbrahmbhatt06">vrajesh B </a>. All rights reserved.</div>', unsafe_allow_html=True)
