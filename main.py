@@ -58,7 +58,7 @@ st.markdown('<div class="title">Instagram Caption Generator</div>', unsafe_allow
 
 api_key = st.secrets["GOOGLE_API_KEY"]
 
-lang = st.selectbox("Select Language:", ['english(default)', 'French'], index=None)
+lang = st.selectbox("Select Language:", ['English(Default)', 'French'], index=None)
 
 option = st.radio("Choose input method: ", ['Explain Scenario using text to get the caption', 'Upload image to get the caption'], index=None)
 
