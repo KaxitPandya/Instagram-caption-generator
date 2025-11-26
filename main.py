@@ -1,6 +1,6 @@
 import streamlit as st
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain import PromptTemplate
+from langchain_core.prompts.prompt import PromptTemplate
 from langchain.schema import HumanMessage
 import time
 import base64
@@ -167,4 +167,5 @@ if lang and option:
         placeholder.empty()
         st.query_params.clear()
         st.rerun()
+
 
