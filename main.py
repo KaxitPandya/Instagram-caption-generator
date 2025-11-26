@@ -109,22 +109,38 @@ def generate_message(option, llm, totalCaptions, language, captionTone, captionL
         # Image upload mode
         uploaded_file = st.file_uploader("Upload an image:", type=['jpg', 'jpeg', 'png'])
         if uploaded_file is not None:
-            # Read and convert image to PIL Image format (preferred by Gemini)
+            # Read image data
             img_data = uploaded_file.read()
             image = Image.open(io.BytesIO(img_data))
+            image_data = base64.b64encode(img_data).decode('utf-8')
             
             text = f'You are a helpful assistant that helps people generate their instagram story and post captions. I want {totalCaptions} alternative caption(s) for the following image in {language} language, and the tone should be {captionTone} and the caption length should be Instagram {captionLength} size'
             
-            # For Gemini, use the correct format: list with SystemMessage and HumanMessage
-            # Gemini accepts PIL Image objects directly in the content
+            # For Gemini via LangChain, try using model_construct to bypass Pydantic validation
+            # This allows us to pass PIL Image objects which Gemini accepts
+            try:
+                # Use model_construct to create HumanMessage with mixed content types
+                human_msg = HumanMessage.model_construct(
+                    content=[text, image]  # Text string + PIL Image
+                )
+            except Exception as e:
+                st.error(f"Error creating message with image: {str(e)}")
+                st.info("Trying alternative format...")
+                # Fallback: try with base64 string format
+                try:
+                    human_msg = HumanMessage(
+                        content=[
+                            {"type": "text", "text": text},
+                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_data}"}}
+                        ]
+                    )
+                except Exception as e2:
+                    st.error(f"Error with fallback format: {str(e2)}")
+                    return None
+            
             prompt = [
                 SystemMessage(content='You are a helpful assistant that helps people generate their instagram story and post captions'),
-                HumanMessage(
-                    content=[
-                        text,
-                        image  # PIL Image object
-                    ]
-                )
+                human_msg
             ]
             return prompt
         else:
