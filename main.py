@@ -6,6 +6,8 @@ import time
 import base64
 import os
 from dotenv import load_dotenv
+from PIL import Image
+import io
 
 # To run the app locally, store the GOOGLE_API_KEY in your .env file, and comment out the following line:
 # api_key = st.secrets["GOOGLE_API_KEY"]
@@ -75,6 +77,7 @@ def llm_invoke(option, api_key=api_key):
         # For image uploads, gemini-pro also supports vision
         llm = ChatGoogleGenerativeAI(model='gemini-pro', api_key=api_key)
     return llm
+    return llm
 
 def generate_message(option, llm, totalCaptions, language, captionTone, captionLength):
     # Determine input type based on the selected option
@@ -106,15 +109,23 @@ def generate_message(option, llm, totalCaptions, language, captionTone, captionL
         # Image upload mode
         uploaded_file = st.file_uploader("Upload an image:", type=['jpg', 'jpeg', 'png'])
         if uploaded_file is not None:
+            # Read and convert image to PIL Image format (preferred by Gemini)
             img_data = uploaded_file.read()
-            image_data = base64.b64encode(img_data).decode('utf-8')
+            image = Image.open(io.BytesIO(img_data))
+            
             text = f'You are a helpful assistant that helps people generate their instagram story and post captions. I want {totalCaptions} alternative caption(s) for the following image in {language} language, and the tone should be {captionTone} and the caption length should be Instagram {captionLength} size'
-            prompt = HumanMessage(
-                content=[
-                    {'type': 'text', 'text': text},
-                    {'type': 'image_url', 'image_url': {'url': f"data:image/jpeg;base64,{image_data}"}}
-                ]
-            )
+            
+            # For Gemini, use the correct format: list with SystemMessage and HumanMessage
+            # Gemini accepts PIL Image objects directly in the content
+            prompt = [
+                SystemMessage(content='You are a helpful assistant that helps people generate their instagram story and post captions'),
+                HumanMessage(
+                    content=[
+                        text,
+                        image  # PIL Image object
+                    ]
+                )
+            ]
             return prompt
         else:
             st.warning('🚨Please upload an image.....')
