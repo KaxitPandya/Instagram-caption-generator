@@ -1,7 +1,7 @@
 import streamlit as st
-from langchain-google-genai import ChatGoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import PromptTemplate
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 import time
 import base64
 import os
@@ -73,9 +73,14 @@ def llm_invoke(option, api_key=api_key):
     return llm
 
 def generate_message(llm, totalCaptions, language, captionTone, captionLength):
-    model_id = llm.model if hasattr(llm, 'model') else llm.dict().get('model', '')
+    # Get model name safely
+    try:
+        model_id = llm.model_name if hasattr(llm, 'model_name') else (llm.model if hasattr(llm, 'model') else str(llm))
+    except Exception:
+        model_id = str(llm)
+    
     # Defensive wrap for model name
-    if '1.5-pro' in model_id:
+    if '1.5-pro' in model_id or 'gemini-1.5-pro' in model_id:
         scene = st.text_input("Explain the scenario for which you want the caption: ")
         if scene:
             template = PromptTemplate(
@@ -89,9 +94,10 @@ def generate_message(llm, totalCaptions, language, captionTone, captionLength):
                 captionTone=captionTone,
                 captionLength=captionLength
             )
+            # Use proper LangChain message objects
             prompt = [
-                ('system', 'You are a helpful assistant that helps people generate their instagram story and post captions'),
-                ('human', formatted_prompt)
+                SystemMessage(content='You are a helpful assistant that helps people generate their instagram story and post captions'),
+                HumanMessage(content=formatted_prompt)
             ]
             return prompt
         else:
@@ -125,8 +131,13 @@ if lang and option:
     if generate_button:
         content = ""
         with st.spinner("Generating captions..."):
-            model_id = llm.model if hasattr(llm, 'model') else llm.dict().get('model', '')
-            if '1.5-pro' in model_id:
+            # Get model name safely
+            try:
+                model_id = llm.model_name if hasattr(llm, 'model_name') else (llm.model if hasattr(llm, 'model') else str(llm))
+            except Exception:
+                model_id = str(llm)
+            
+            if '1.5-pro' in model_id or 'gemini-1.5-pro' in model_id:
                 for chunk in llm.stream(prompt):
                     for char in chunk.content:
                         content += char
