@@ -67,16 +67,15 @@ option = st.radio("Choose input method: ", ['Explain Scenario using text to get 
 
 
 # select the appropriate model based on the user's choice in the 'option' input.
-# Note: Google has updated model names. Using 'gemini-pro' which is widely available.
+# Note: Google has updated model names. Using 'gemini-1.5-pro' and 'gemini-1.5-flash'
 def llm_invoke(option, api_key=api_key):
-    # Use gemini-pro for both text and image scenarios
-    # gemini-pro supports both text generation and vision capabilities
+    # Use gemini-1.5-pro for text scenarios (more powerful)
+    # Use gemini-1.5-flash for image scenarios (faster, supports vision)
     if option == "Explain Scenario using text to get the caption":
-        llm = ChatGoogleGenerativeAI(model='gemini-pro', temperature=0, max_output_tokens=None, api_key=api_key)
+        llm = ChatGoogleGenerativeAI(model='gemini-1.5-pro', temperature=0, max_output_tokens=None, api_key=api_key)
     else:
-        # For image uploads, gemini-pro also supports vision
-        llm = ChatGoogleGenerativeAI(model='gemini-pro', api_key=api_key)
-    return llm
+        # For image uploads, use gemini-1.5-flash which supports vision
+        llm = ChatGoogleGenerativeAI(model='gemini-1.5-flash', api_key=api_key)
     return llm
 
 def generate_message(option, llm, totalCaptions, language, captionTone, captionLength):
@@ -163,7 +162,7 @@ if lang and option:
     if generate_button:
         content = ""
         with st.spinner("Generating captions..."):
-            # Stream the response - gemini-pro works the same way for both text and images
+            # Stream the response - both gemini-1.5-pro and gemini-1.5-flash work the same way
             # Both use the same message format now
             try:
                 # Try streaming with the prompt directly (works for both text and image prompts)
