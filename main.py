@@ -1,31 +1,11 @@
 import streamlit as st
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts.prompt import PromptTemplate
-# from langchain.schema import HumanMessage
-# robust HumanMessage import (works across langchain versions)
-try:
-    # modern / common location
-    from langchain.schema import HumanMessage
-except Exception:
-    try:
-        # core modular package
-        from langchain_core.schema import HumanMessage
-    except Exception:
-        try:
-            # some installs expose it differently
-            from langchain.core.schema import HumanMessage
-        except Exception:
-            # last resort: lightweight fallback dataclass so code doesn't crash at import time.
-            # NOTE: This fallback does NOT mimic all LangChain features — prefer installing langchain_core/langchain.
-            from dataclasses import dataclass
-            @dataclass
-            class HumanMessage:
-                content: str
-                def __repr__(self):
-                    return f"HumanMessage(content={self.content!r})"
-
+from langchain_core.prompts import PromptTemplate
+from langchain_core.messages import HumanMessage
 import time
 import base64
+import os
+from dotenv import load_dotenv
 
 # To run the app locally, store the GOOGLE_API_KEY in your .env file, and comment out the following line:
 # api_key = st.secrets["GOOGLE_API_KEY"]
@@ -40,7 +20,7 @@ st.markdown("""
     <style>
     .title {
         font-size: 2.5em;
-        color: #black;
+        color: black;
         text-align: center;
         font-weight: bold;
         margin-bottom: 10px;
@@ -81,7 +61,6 @@ st.markdown('<div class="title">Instagram Caption Generator</div>', unsafe_allow
 api_key = st.secrets["GOOGLE_API_KEY"]
 
 lang = st.selectbox("Select Language:", ['English(Default)', 'French'], index=None)
-
 option = st.radio("Choose input method: ", ['Explain Scenario using text to get the caption', 'Upload image to get the caption'], index=None)
 
 
@@ -93,59 +72,45 @@ def llm_invoke(option, api_key=api_key):
         llm = ChatGoogleGenerativeAI(model='gemini-1.5-flash', api_key=api_key)
     return llm
 
-
-# function to create prompt for selected model
 def generate_message(llm, totalCaptions, language, captionTone, captionLength):
-    if llm.dict()['model'].split('/')[1] == 'gemini-1.5-pro':
-        # prompt the user for text input if the 'option' selected is 'Explain Scenario using text'.
+    model_id = llm.model if hasattr(llm, 'model') else llm.dict().get('model', '')
+    # Defensive wrap for model name
+    if '1.5-pro' in model_id:
         scene = st.text_input("Explain the scenario for which you want the caption: ")
         if scene:
             template = PromptTemplate(
                 input_variables=["language", "totalCaptions", "scenario", "captionTone", "captionLength"],
                 template="I want {totalCaptions} alternative caption(s) for the following scenario: \"{scenario}\" in {language} language, and the tone should be {captionTone} and the caption length should be Instagram {captionLength} size"
                 )
-                
-            # format the prompt
             formatted_prompt = template.format(
-                totalCaptions=captions,
+                totalCaptions=totalCaptions,
                 scenario=scene,
-                language=lang,
-                captionTone=tone,
-                captionLength=length
-                )
-            
+                language=language,
+                captionTone=captionTone,
+                captionLength=captionLength
+            )
             prompt = [
-                (
-                    'system',
-                    'You are a helpful assitant that helps people generate their instagram story and post captions'
-                    ),
-                (
-                    'human', formatted_prompt
-                )
-                ]
+                ('system', 'You are a helpful assistant that helps people generate their instagram story and post captions'),
+                ('human', formatted_prompt)
+            ]
             return prompt
         else:
-            if not scene:
-                st.warning('🚨Please explain the scenario first...')
+            st.warning('🚨Please explain the scenario first...')
     else:
-        # prompt the user to upload an image if the 'option' selected is 'Upload image to get the caption'.
         uploaded_file = st.file_uploader("Upload an image:", type=['jpg', 'jpeg', 'png'])
         if uploaded_file is not None:
             img_data = uploaded_file.read()
             image_data = base64.b64encode(img_data).decode('utf-8')
-            
-            # format the prompt
-            text = f'You are a helpful assitant that helps people generate their instagram story and post captions. I want {totalCaptions} alternative caption(s) for the following image in {language} language, and the tone should be {captionTone} and the caption length should be Instagram {captionLength} size'
+            text = f'You are a helpful assistant that helps people generate their instagram story and post captions. I want {totalCaptions} alternative caption(s) for the following image in {language} language, and the tone should be {captionTone} and the caption length should be Instagram {captionLength} size'
             prompt = HumanMessage(
                 content=[
                     {'type': 'text', 'text': text},
                     {'type': 'image_url', 'image_url': {'url': f"data:image/jpeg;base64,{image_data}"}}
                 ]
-                )
+            )
             return prompt
         else:
             st.warning('🚨Please upload an image.....')
-
 
 if lang and option:
     llm = llm_invoke(option)
@@ -153,17 +118,15 @@ if lang and option:
     tone = st.selectbox("Select Tone:", ['Creative', 'Humorous', 'Funny', 'Humorous and funny', 'Conversational', 'genZ language'], index=None)
     length = st.selectbox('Select caption Type:', ['Story caption (short)', 'Post caption (Short)', 'Story caption (long)', 'Post caption (long)'], index=None)
     prompt = generate_message(llm, captions, lang, tone, length)
-    
-    placeholder = st.empty()
 
-    # enable the button only if all conditions are met
+    placeholder = st.empty()
     generate_button = st.button("Generate Caption", disabled=not (prompt and captions and tone and length))
-    
+
     if generate_button:
         content = ""
-        # stream the model's output content character by character for either scenario (text or image input).
         with st.spinner("Generating captions..."):
-            if llm.dict()['model'].split('/')[1] == 'gemini-1.5-pro':
+            model_id = llm.model if hasattr(llm, 'model') else llm.dict().get('model', '')
+            if '1.5-pro' in model_id:
                 for chunk in llm.stream(prompt):
                     for char in chunk.content:
                         content += char
@@ -175,16 +138,12 @@ if lang and option:
                         content += char
                         placeholder.markdown(content)
                         time.sleep(0.005)
-
-        # store the generated content in session state
         st.session_state['generated_content'] = content
 
-    # display the clear button if content exists
     flag = 'generated_content' in st.session_state
     clear_button = st.button("Clear Output", disabled= not flag)
 
     if clear_button:
-        # clear the generated content and remove it from the session state
         st.session_state.pop('generated_content', None)
         placeholder.empty()
         st.query_params.clear()
