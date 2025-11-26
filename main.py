@@ -120,22 +120,30 @@ def generate_message(option, llm, totalCaptions, language, captionTone, captionL
             
             text = f'You are a helpful assistant that helps people generate their instagram story and post captions. I want {totalCaptions} alternative caption(s) for the following image in {language} language, and the tone should be {captionTone} and the caption length should be Instagram {captionLength} size'
             
-            # For ChatGoogleGenerativeAI with images, create HumanMessage
-            # Include system instruction in the text, as SystemMessage might cause conversion issues
+            # For ChatGoogleGenerativeAI with images, use the correct dict format
+            # Convert image to base64 string (Pydantic accepts this format)
+            from io import BytesIO
+            img_bytes_io = BytesIO()
+            image.save(img_bytes_io, format='JPEG')
+            img_bytes = img_bytes_io.getvalue()
+            img_base64 = base64.b64encode(img_bytes).decode('utf-8')
+            
+            # Include system instruction in the text
             full_text = f'You are a helpful assistant that helps people generate their instagram story and post captions. {text}'
             
-            # Use model_construct to bypass Pydantic validation
-            # ChatGoogleGenerativeAI will handle the PIL Image conversion internally
-            try:
-                # Create HumanMessage with text (including system instruction) and image
-                # Don't use SystemMessage separately as it might cause conversion issues
-                human_msg = HumanMessage.model_construct(content=[full_text, image])
-            except Exception as e:
-                st.error(f"Error creating HumanMessage: {str(e)}")
-                return None
+            # Use the dict format that Pydantic accepts and ChatGoogleGenerativeAI expects
+            # This is the standard format: list of dicts with type and content
+            human_msg = HumanMessage(
+                content=[
+                    {"type": "text", "text": full_text},
+                    {
+                        "type": "image_url",
+                        "image_url": f"data:image/jpeg;base64,{img_base64}"
+                    }
+                ]
+            )
             
             # Return just the HumanMessage (without SystemMessage) for image inputs
-            # This might help avoid the conversion error
             prompt = [human_msg]
             return prompt
         else:
