@@ -65,22 +65,21 @@ option = st.radio("Choose input method: ", ['Explain Scenario using text to get 
 
 
 # select the appropriate model based on the user's choice in the 'option' input.
+# Note: Google has updated model names. Using 'gemini-pro' which is widely available.
 def llm_invoke(option, api_key=api_key):
+    # Use gemini-pro for both text and image scenarios
+    # gemini-pro supports both text generation and vision capabilities
     if option == "Explain Scenario using text to get the caption":
-        llm = ChatGoogleGenerativeAI(model='gemini-1.5-pro', temperature=0, max_output_tokens=None, api_key=api_key)
+        llm = ChatGoogleGenerativeAI(model='gemini-pro', temperature=0, max_output_tokens=None, api_key=api_key)
     else:
-        llm = ChatGoogleGenerativeAI(model='gemini-1.5-flash', api_key=api_key)
+        # For image uploads, gemini-pro also supports vision
+        llm = ChatGoogleGenerativeAI(model='gemini-pro', api_key=api_key)
     return llm
 
-def generate_message(llm, totalCaptions, language, captionTone, captionLength):
-    # Get model name safely
-    try:
-        model_id = llm.model_name if hasattr(llm, 'model_name') else (llm.model if hasattr(llm, 'model') else str(llm))
-    except Exception:
-        model_id = str(llm)
-    
-    # Defensive wrap for model name
-    if '1.5-pro' in model_id or 'gemini-1.5-pro' in model_id:
+def generate_message(option, llm, totalCaptions, language, captionTone, captionLength):
+    # Determine input type based on the selected option
+    if option == "Explain Scenario using text to get the caption":
+        # Text input mode
         scene = st.text_input("Explain the scenario for which you want the caption: ")
         if scene:
             template = PromptTemplate(
@@ -102,7 +101,9 @@ def generate_message(llm, totalCaptions, language, captionTone, captionLength):
             return prompt
         else:
             st.warning('🚨Please explain the scenario first...')
+            return None
     else:
+        # Image upload mode
         uploaded_file = st.file_uploader("Upload an image:", type=['jpg', 'jpeg', 'png'])
         if uploaded_file is not None:
             img_data = uploaded_file.read()
@@ -117,13 +118,14 @@ def generate_message(llm, totalCaptions, language, captionTone, captionLength):
             return prompt
         else:
             st.warning('🚨Please upload an image.....')
+            return None
 
 if lang and option:
     llm = llm_invoke(option)
     captions = st.selectbox('Select Number of Alternatives you want: ', [1, 2, 3, 4, 5], index=None)
     tone = st.selectbox("Select Tone:", ['Creative', 'Humorous', 'Funny', 'Humorous and funny', 'Conversational', 'genZ language'], index=None)
     length = st.selectbox('Select caption Type:', ['Story caption (short)', 'Post caption (Short)', 'Story caption (long)', 'Post caption (long)'], index=None)
-    prompt = generate_message(llm, captions, lang, tone, length)
+    prompt = generate_message(option, llm, captions, lang, tone, length)
 
     placeholder = st.empty()
     generate_button = st.button("Generate Caption", disabled=not (prompt and captions and tone and length))
@@ -131,24 +133,19 @@ if lang and option:
     if generate_button:
         content = ""
         with st.spinner("Generating captions..."):
-            # Get model name safely
+            # Stream the response - gemini-pro works the same way for both text and images
+            # Both use the same message format now
             try:
-                model_id = llm.model_name if hasattr(llm, 'model_name') else (llm.model if hasattr(llm, 'model') else str(llm))
-            except Exception:
-                model_id = str(llm)
-            
-            if '1.5-pro' in model_id or 'gemini-1.5-pro' in model_id:
+                # Try streaming with the prompt directly (works for both text and image prompts)
                 for chunk in llm.stream(prompt):
-                    for char in chunk.content:
-                        content += char
-                        placeholder.markdown(content)
-                        time.sleep(0.005)
-            else:
-                for chunk in llm.stream([prompt]):
-                    for char in chunk.content:
-                        content += char
-                        placeholder.markdown(content)
-                        time.sleep(0.005)
+                    if hasattr(chunk, 'content') and chunk.content:
+                        for char in chunk.content:
+                            content += char
+                            placeholder.markdown(content)
+                            time.sleep(0.005)
+            except Exception as e:
+                st.error(f"Error generating caption: {str(e)}")
+                st.info("Please check your API key and model availability.")
         st.session_state['generated_content'] = content
 
     flag = 'generated_content' in st.session_state
