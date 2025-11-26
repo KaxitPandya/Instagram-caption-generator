@@ -1,7 +1,29 @@
 import streamlit as st
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts.prompt import PromptTemplate
-from langchain.schema import HumanMessage
+# from langchain.schema import HumanMessage
+# robust HumanMessage import (works across langchain versions)
+try:
+    # modern / common location
+    from langchain.schema import HumanMessage
+except Exception:
+    try:
+        # core modular package
+        from langchain_core.schema import HumanMessage
+    except Exception:
+        try:
+            # some installs expose it differently
+            from langchain.core.schema import HumanMessage
+        except Exception:
+            # last resort: lightweight fallback dataclass so code doesn't crash at import time.
+            # NOTE: This fallback does NOT mimic all LangChain features — prefer installing langchain_core/langchain.
+            from dataclasses import dataclass
+            @dataclass
+            class HumanMessage:
+                content: str
+                def __repr__(self):
+                    return f"HumanMessage(content={self.content!r})"
+
 import time
 import base64
 
@@ -167,5 +189,6 @@ if lang and option:
         placeholder.empty()
         st.query_params.clear()
         st.rerun()
+
 
 
