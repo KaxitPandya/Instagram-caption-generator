@@ -53,6 +53,36 @@ jobs:
             try {
               // go to page and wait for network idle (good for SPAs)
               await page.goto(url, { waitUntil: 'networkidle2' });
+              // After page.goto(...)
+              await page.waitForTimeout(waitMs);
+              
+              // Click a button by matching visible text (case-insensitive)
+              const clickedText = await page.evaluate(() => {
+                const patterns = [
+                  /wake/i,
+                  /wake up/i,
+                  /wake app/i,
+                  /open/i,
+                  /continue/i,
+                  /get this app back up/i,
+                ];
+              
+                const buttons = Array.from(document.querySelectorAll('button'));
+                const target = buttons.find(b => {
+                  const t = (b.innerText || b.textContent || '').trim();
+                  return patterns.some(p => p.test(t));
+                });
+              
+                if (target) {
+                  target.click();
+                  return (target.innerText || target.textContent || '').trim();
+                }
+                return null;
+              });
+              
+              console.log(clickedText ? `Clicked button: "${clickedText}"` : "No wake/open/continue button found.");
+              await page.waitForTimeout(3000);
+
               console.log('Loaded page — waiting', waitMs, 'ms for content to stabilize');
               await page.waitForTimeout(waitMs);
 
